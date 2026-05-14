@@ -1,0 +1,53 @@
+name: Backend Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - "superset/**"
+      - "tests/**"
+      - "requirements/**"
+      - "pyproject.toml"
+      - "setup.py"
+      - "pytest.ini"
+      - ".github/workflows/backend-tests.yml"
+
+concurrency:
+  group: backend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-unit-tests:
+    name: Run backend unit tests
+    runs-on: ubuntu-24.04
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_TESTENV: true
+      SUPERSET_SECRET_KEY: not-a-secret
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-backend/
+        with:
+          python-version: current
+
+      - name: Run backend unit tests
+        run: |
+          pytest --durations-min=0.5 \
+            --cov-report= \
+            --cov=superset \
+            ./tests/common ./tests/unit_tests \
+            --cache-clear \
+            --maxfail=50
